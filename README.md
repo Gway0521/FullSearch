@@ -12,7 +12,9 @@
 
 ## 操作
 
-https://github.com/Gway0521/FullSearch/assets/112754491/6cda6a37-e0fc-47a3-afd0-59e0eaf8e57f
+https://github.com/Gway0521/FullSearch/assets/112754491/beb877e2-e9f7-47f6-96c3-d3a022869548
+
+
 
 
 
