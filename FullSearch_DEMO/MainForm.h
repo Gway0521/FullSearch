@@ -510,7 +510,7 @@ namespace FullSearchDEMO {
 
 	private:
 		FILE* fp;
-		Bitmap ^nowBmp, ^pastBmp, ^residualBmp, ^differenceBmp, ^reconstructionBmp;
+		Bitmap ^nowBmp, ^pastBmp, ^residualBmp, ^differenceBmp, ^reconstructionBmp, ^motionVectorBmp;
 		Imaging::BitmapData^ nowBmpData, ^pastBmpData, ^residualBmpData, ^differenceBmpData, ^reconstructionBmpData;
 		Graphics^ motionVectorGra;
 		int imgWidth, imgHeight, blockSize, searchRange, frameNumber;
@@ -529,6 +529,12 @@ namespace FullSearchDEMO {
 		blockSize = System::Convert::ToInt32(blockSize_tb->Text);
 		searchRange = System::Convert::ToInt32(searchRange_tb->Text);
 		frameNumber = System::Convert::ToInt32(frameNumber_tb->Text);
+
+		// 清空 PSNR、SSIM 的 TextBox
+		PSNR_tb1->Clear();
+		PSNR_tb2->Clear();
+		SSIM_tb1->Clear();
+		SSIM_tb2->Clear();
 
 		// 一些 openFileDialog1 的設定
 		openFileDialog1->InitialDirectory = "C:/";
@@ -588,8 +594,8 @@ namespace FullSearchDEMO {
 		B = ((B > 255) ? 255 : B);
 	}
 
-	// Lock Bitmap 以取得 DataPtr
-	System::Void LockBitmap()
+	// 初始化 Bitmap 、LockBits 並取得 DataPtr
+	System::Void InitBitmap()
 	{
 		// Bitmap 分配記憶體
 		nowBmp = gcnew Bitmap(imgWidth, imgHeight);
@@ -597,6 +603,10 @@ namespace FullSearchDEMO {
 		differenceBmp = gcnew Bitmap(imgWidth, imgHeight);
 		residualBmp = gcnew Bitmap(imgWidth, imgHeight);
 		reconstructionBmp = gcnew Bitmap(imgWidth, imgHeight);
+		motionVectorBmp = gcnew Bitmap(imgWidth, imgHeight);
+
+		// 以 Bitmap 建立 Graphic
+		motionVectorGra = Graphics::FromImage(motionVectorBmp);
 
 		// Lock Bitmap 取得 BitmapData
 		nowBmpData = nowBmp->LockBits(System::Drawing::Rectangle(0, 0, nowBmp->Width, nowBmp->Height), Imaging::ImageLockMode::ReadWrite, nowBmp->PixelFormat);
@@ -634,13 +644,21 @@ namespace FullSearchDEMO {
 			delete residual_pb->Image;
 		if (reconstruction_pb->Image)
 			delete reconstruction_pb->Image;
+		if (motionVector_pb->Image)
+		{
+			delete motionVector_pb->Image;
+			delete motionVectorGra;
+		}
 
 		// 顯示新的 Bitmap
+		// 這個其實應該要寫成一個函數交給 Invoke，因為 UI 的更新不能寫在其他執行緒
+		// 但是在 PictureBox 屬性為 Zoom 的情況下，程式似乎還是能執行，所以先不動
 		currentFrame_pb->Image = nowBmp;
 		previousFrame_pb->Image = pastBmp;
 		difference_pb->Image = differenceBmp;
 		residual_pb->Image = residualBmp;
 		reconstruction_pb->Image = reconstructionBmp;
+		motionVector_pb->Image = motionVectorBmp;
 	}
 
 	// Motion Estimation with Full Search
@@ -834,17 +852,18 @@ namespace FullSearchDEMO {
 	}
 
 
-
 	// 主程式
 	System::Void Execute()
 	{
+		// 計時，Debug 用的
 		std::clock_t start = std::clock();
 
+		// 宣告變數
 		int sizeofimage = imgWidth * imgHeight;
 		int pelY, pelCb, pelCr, pelR, pelG, pelB;
 		int residual, difference;
 		double PSNR, SSIM, totalPSNR = 0, totalSSIM = 0;
-		
+	
 
 		// 各畫面 分配記憶體
 		nowY = new unsigned char[sizeofimage];
@@ -856,9 +875,6 @@ namespace FullSearchDEMO {
 		RecY = new unsigned char[sizeofimage];
 		RecCb = new unsigned char[sizeofimage];
 		RecCr = new unsigned char[sizeofimage];
-
-		// Graphics 分配記憶體
-		motionVectorGra = motionVector_pb->CreateGraphics();                                                                                                                                
 
 		// Pen 分配記憶體
 		Pen^ pen = gcnew Pen(Color::Black, 1.0f);
@@ -876,7 +892,8 @@ namespace FullSearchDEMO {
 			fread(nowCr, sizeof(unsigned char) * (sizeofimage / 4), 1, fp);
 
 			// 鎖住所有 Bitmap 並取得 BitmapData，直接修改 BitmapData 會比 SetPixel 更有效率
-			LockBitmap();
+			InitBitmap();
+			
 
 			// 繪製 Current Frame 和 Previous Frame
 			for (int y = 0; y < imgHeight; y++)
@@ -922,9 +939,6 @@ namespace FullSearchDEMO {
 				UnlockAndShowBitmap();
 				continue;
 			}
-				
-			// 清除 Motion Vector 圖
-			motionVectorGra->Clear(Color::White);
 
 			// 紀錄最小 SAD 的水平向量與垂直向量
 			int min_sad_x = 0, min_sad_y = 0;
@@ -960,11 +974,14 @@ namespace FullSearchDEMO {
 			UpdateText(SSIM_tb1, SSIM.ToString());
 			totalSSIM += SSIM;
 			UpdateText(SSIM_tb2, (round(totalSSIM / z * 100) / 100).ToString());
+
+			// 避免程式運行過快
+			System::Threading::Thread::Sleep(30);
 		}
 
+		// 釋放記憶體
 		fclose(fp);
 		delete nowY, nowCb, nowCr, pastY, pastCb, pastCr, RecY, RecCb, RecCr, pen;
-		//delete nowBmp, pastBmp, differenceBmp, residualBmp, reconstructionBmp;
 
 		std::cout << (std::clock() - start) / (double)CLOCKS_PER_SEC << std::endl;
 	}
