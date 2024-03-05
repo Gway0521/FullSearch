@@ -1,4 +1,0 @@
-C:\Users\USER1\Desktop\Lab\Code_C++\WindowsForms\FullSearch\FullSearch_DEMO\x64\Debug\FullSearch_DEMO.vcxproj.AssemblyReference.cache
-C:\Users\USER1\Desktop\Lab\Code_C++\WindowsForms\FullSearch\FullSearch_DEMO\x64\Debug\FullSearch_DEMO.vcxproj.SuggestedBindingRedirects.cache
-C:\Users\USER1\Desktop\Lab\Code_C++\WindowsForms\FullSearch\FullSearch_DEMO\x64\Debug\FullSearchDEMO.MainForm.resources
-C:\Users\USER1\Desktop\Lab\Code_C++\WindowsForms\FullSearch\FullSearch_DEMO\x64\Debug\FullSearch_DEMO.vcxproj.GenerateResource.cache
